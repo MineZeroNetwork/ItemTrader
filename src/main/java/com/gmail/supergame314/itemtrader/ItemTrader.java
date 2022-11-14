@@ -1,10 +1,12 @@
 package com.gmail.supergame314.itemtrader;
 
-import net.md_5.bungee.api.ChatColor;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.TextComponent;
+import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -13,7 +15,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -80,11 +81,12 @@ public final class ItemTrader extends JavaPlugin implements Listener {
                     return true;
                 }
                 if(p==target){
-                    sender.sendMessage(prefix+" §c§l自分と取引することはできません");
+                    sender.sendMessage(prefix+" §c§l自分と取引することはできません！");
                     return true;
                 }
                 new MatchSystem(p,target);
                 ask(p,target);
+                sender.sendMessage(prefix+" §a§l取引に誘いました。");
             }
         }
         return true;
@@ -136,44 +138,32 @@ public final class ItemTrader extends JavaPlugin implements Listener {
     }
 
     @EventHandler
-    public void chat(AsyncPlayerChatEvent event){
+    public void chat(AsyncChatEvent event) {
         MatchSystem ms = MatchSystem.getMatchF(event.getPlayer());
-        if(ms != null){
+        if (ms != null) {
             event.setCancelled(true);
-            ms.chat(event.getPlayer(),event.getMessage());
-        }else {
+            ms.chat(event.getPlayer(), event.message());
+        } else {
             ms = MatchSystem.getMatchT(event.getPlayer());
             if (ms != null) {
                 event.setCancelled(true);
-                ms.chat(event.getPlayer(),event.getMessage());
+                ms.chat(event.getPlayer(), event.message());
             }
         }
     }
 
-
-    public static TextComponent getText(String text, String hoverText, String command, ChatColor color){
-        TextComponent tc = new TextComponent(text);
-        if(color!=null)
-            tc.setColor(color);
-        if(command!=null)
-            tc.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,command));
-        if(hoverText!=null)
-            tc.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,new ComponentBuilder(hoverText).create()));
-        return tc;
-    }
-
+    // https://www.spigotmc.org/threads/api-for-parsing-a-text-component.512539/
     void ask(Player p,Player target){
-        TextComponent text=new TextComponent(prefix + "§e§l" + p.getName() + "§aに取引に誘われました。");
-        text.addExtra(getText("§l§n[応じる] ","取引する","/trade acc",ChatColor.GREEN));
-        text.addExtra(getText(" §l§n[断る]","取引しない","/trade ref",ChatColor.RED));
-        target.spigot().sendMessage(text);
+        Component text =
+                MiniMessage.miniMessage().deserialize("<gold><bold>" + p.getName() + "に取引に誘われました。<reset> <green><bold><underlined><hover:show_text:'クリックで応じる'><click:run_command:/trade acc>[応じる]<reset> <red><bold><underlined><hover:show_text:'クリックで断る'><click:run_command:/trade ref>[断る]<reset>");
+        target.sendMessage(text);
     }
 
-    static ItemStack getItem(Material m,int amount,String name,String... lore){
+    static ItemStack getItem(Material m,int amount,Component name,Component... lore){
         ItemStack i =new ItemStack(m,amount);
         ItemMeta meta = i.getItemMeta();
-        meta.setDisplayName(name);
-        meta.setLore(Arrays.asList(lore));
+        meta.displayName(name);
+        meta.lore(Arrays.asList(lore));
         i.setItemMeta(meta);
         return i;
     }
